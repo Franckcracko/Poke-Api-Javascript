@@ -1,0 +1,18 @@
+---
+import { fetching } from "../functions/fetching";
+import Pokemon from "./Pokemon.astro";
+const { url } = Astro.props;
+const data = await fetching(url);
+const urlPokemonApi = data["pokemon"];
+
+const dataPokemons = await fetching(urlPokemonApi);
+const resultPokemons = dataPokemons["results"];
+---
+
+<ul class="grid gap-x-10" style="grid-template-columns: repeat(auto-fit, minmax(300px,1fr))">
+  {
+    resultPokemons.map((el) => (
+      <Pokemon namePokemon={el["name"]} urlPokemon={el["url"]} />
+    ))
+  }
+</ul>

@@ -1,0 +1,136 @@
+---
+import { fetching } from "../functions/fetching";
+
+const { namePokemon, urlPokemon } = Astro.props;
+const dataPokemon = await fetching(urlPokemon);
+
+const pokemon = {
+  namePokemon,
+  base_experience: dataPokemon["base_experience"],
+  sprites: dataPokemon["sprites"],
+  stats: dataPokemon["stats"],
+  specie: dataPokemon["species"],
+  moves: dataPokemon["moves"],
+};
+const pokemonStats = {
+  HP: "hp",
+  ATTACK: "attack",
+  DEFENSE: "defense",
+  ESPECIAL_ATTACK: "special-attack",
+  ESPECIAL_DEFENSE: "special-defense",
+  SPEED: "speed",
+};
+const pokemonTypes = {
+  BASIC: "Basic",
+  LEGENDARY: "Legendary",
+  MYTHICAL: "Mythical",
+};
+
+const filterStats = (findStat) => {
+  return pokemon.stats.filter((stat) => {
+    const nameStat = stat["stat"]["name"];
+    if (typeof nameStat !== "string") throw new Error("Error en el filtro");
+
+    if (findStat === nameStat) return stat;
+  });
+};
+
+const specieData = await fetching(pokemon.specie["url"]);
+
+const legendary = specieData["is_legendary"];
+const mythical = specieData["is_mythical"];
+const flavorTextEntries = specieData["flavor_text_entries"];
+
+const filterEntries = (entries,language) => {
+  return entries.filter(entrie => {
+    const languageName = entrie["language"]["name"]
+    if (languageName === language) return entrie
+  });
+}
+
+const language = "en"
+const newFlavorTextEntriesEnglish = filterEntries(flavorTextEntries,language)
+
+const detailPokemon = newFlavorTextEntriesEnglish.length > 0 ? 
+  newFlavorTextEntriesEnglish[0]["flavor_text"].replace(/\f/g," ")
+: "None"
+const hp =  filterStats(pokemonStats.HP)[0]["base_stat"]
+
+const moves = pokemon.moves.filter((move,index) => index < 2 )
+const type = (!legendary && !mythical) ? 
+        pokemonTypes.BASIC
+      :
+        legendary ? 
+          pokemonTypes.LEGENDARY
+        : pokemonTypes.MYTHICAL
+---
+
+<article class="py-2 pb-4 px-6 border-blue-500 border-[4px] border-opacity-40 shadow-md mb-2 rounded">
+  <!-- Header -->
+  <section class=" mb-4 flex justify-between font-medium">
+    <section class="flex items-center">
+      <h4 class={`mr-2 shadow-md rounded-lg py-1 px-3 font-mono italic text-sm bg-gradient-to-b  ${type === pokemonTypes.BASIC ? "from-[#e2e2e2] to-[#bfbfbf]":"from-purple-500 to-pink-500" }`}>
+        {
+          type
+        }
+      </h4>
+      <h1 class="uppercase mr-1">{pokemon.namePokemon} </h1>
+      <span class="text-xs">Lv. {pokemon.base_experience}</span>
+    </section>
+    <h3>{hp} <span>HP</span></h3>
+  </section>
+  <section class="relative border-[3px] border-[#bfbfbf]  drop-shadow mb-4 bg-[url('/images/backgrounds/fondo_azul_cielo.jpg')]">
+    <img
+      class="object-cover min-h-[200px] w-48 mx-auto"
+      src={`${pokemon.sprites["front_default"]}`}
+      alt={`imagen de ${pokemon.namePokemon}`}
+    />
+    <img class="absolute bottom-1 right-1" width="84" src="/images/svg/pokemon_logo.svg" alt="logo pokemon">
+  </section>
+  <section >
+    <!-- Description -->
+    <p class="text-xs mb-4 ">
+      {
+        detailPokemon
+      }
+    </p>
+    <!-- Abilitys -->
+    <ul class="">
+      {
+        moves.map(async function (el) {
+          const move = el["move"]
+          const moveName = move["name"]
+          const moveUrl= move["url"]
+          const moveData = await fetching(moveUrl)
+          const pp = moveData["pp"]
+          const effectEntries = moveData["effect_entries"]
+          const effectsFiltered = filterEntries(effectEntries,language)
+          
+          return(
+            <li class=" font-semibold flex pl-20 justify-between uppercase text-center">
+              <h3>
+                {
+                  moveName.replace("-"," ")
+                }  
+              </h3>
+              <span>
+                {
+                  pp
+                }  
+              </span>
+            </li>
+            
+            <li class="mb-3 text-xs">
+              {
+                effectsFiltered.length > 0 ? effectsFiltered[0]["effect"] : "----"
+              }
+              
+            </li>
+          )
+        })
+      }
+    </ul>
+    
+
+  </section>
+</article>
